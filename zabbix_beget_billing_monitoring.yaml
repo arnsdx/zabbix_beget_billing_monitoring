@@ -54,7 +54,7 @@ zabbix_export:
             key: beget.account.info
           triggers:
             - uuid: bcdd0cc5475c4ea09819946752e74dd1
-              expression: 'last(/Beget API Check/beget.account.lockout.days)<10'
+              expression: 'last(/Beget API Check/beget.account.lockout.days)<7'
               name: 'Beget account will be blocked in less than 7 days'
               priority: HIGH
         - uuid: 258d2ce5a5f9408380b22f70a2fe19fc
