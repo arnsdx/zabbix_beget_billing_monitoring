@@ -1,0 +1,103 @@
+zabbix_export:
+  version: '7.0'
+  template_groups:
+    - uuid: c2c162144c2d4c5491c8801193af4945
+      name: Templates/Cloud
+  templates:
+    - uuid: 09212753f81749c2bea635196f2788a5
+      template: 'Beget API Billing'
+      name: 'Beget API billing status check'
+      groups:
+        - name: Templates/Cloud
+      items:
+        - uuid: 48495ee67d3042478fae5e8e34842f07
+          name: 'beget Current balance'
+          type: DEPENDENT
+          key: beget.account.balance
+          delay: '0'
+          history: 90d
+          value_type: FLOAT
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.answer.result.user_balance
+          master_item:
+            key: beget.account.info
+        - uuid: 804ab5bbfde2423f8459783c5a03ff4d
+          name: begetAccountInfo
+          type: HTTP_AGENT
+          key: beget.account.info
+          delay: 5m
+          value_type: TEXT
+          trends: '0'
+          url: 'https://api.beget.ru/api/user/getAccountInfo'
+          query_fields:
+            - name: login
+              value: '{$BEGET.LOGIN}'
+            - name: passwd
+              value: '{$BEGET.PASSWD}'
+            - name: output_format
+              value: json
+        - uuid: 86310930d8204f84a450118fb345a6a3
+          name: 'beget Days Before Lockout'
+          type: DEPENDENT
+          key: beget.account.lockout.days
+          delay: '0'
+          history: 7d
+          value_type: FLOAT
+          trends: '0'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.answer.result.user_days_to_block
+          master_item:
+            key: beget.account.info
+          triggers:
+            - uuid: bcdd0cc5475c4ea09819946752e74dd1
+              expression: 'last(/Beget API Check/beget.account.lockout.days)<10'
+              name: 'Beget account will be blocked in less than 7 days'
+              priority: HIGH
+        - uuid: 258d2ce5a5f9408380b22f70a2fe19fc
+          name: 'beget Daily required payment value'
+          type: DEPENDENT
+          key: beget.account.payment.daily
+          delay: '0'
+          history: 7d
+          value_type: FLOAT
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.answer.result.user_rate_current
+          master_item:
+            key: beget.account.info
+        - uuid: fd1b65f4082d43fbbcd8ad81ca26818c
+          name: 'beget Monthly required payment value'
+          type: DEPENDENT
+          key: beget.account.payment.monthly
+          delay: '0'
+          history: 7d
+          value_type: FLOAT
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.answer.result.user_rate_month
+          master_item:
+            key: beget.account.info
+        - uuid: 00b8d1bf3a2748988e78544c160b988e
+          name: 'beget Authorization status'
+          type: DEPENDENT
+          key: beget.status
+          delay: '0'
+          value_type: TEXT
+          trends: '0'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.status
+          master_item:
+            key: beget.account.info
+          triggers:
+            - uuid: 093db69725454728a6318119f77c15ca
+              expression: 'find(/Beget API Check/beget.status,,"regexp","success")<>1'
+              name: 'Beget authorization status differs from "success"'
+              priority: HIGH
